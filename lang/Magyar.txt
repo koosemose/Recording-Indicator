@@ -1,6 +1,6 @@
-//
-//	Hungarian Translation File by Koosemose via google translate
-//	PlayClaw 3395 - October 12, 2015
+﻿//
+//	Hungarian Translation File
+//	October 19, 2015
 //
 
 Cancel				Mégse
