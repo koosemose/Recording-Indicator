@@ -20,10 +20,8 @@ PluginOverlayGdiPlusHelper	*pRenderHelper = 0;
 
 Gdiplus::SolidBrush*	pFPSNormalBrush = 0;
 Gdiplus::SolidBrush*	pFPSRecordBrush = 0;
-//Gdiplus::SolidBrush*	pFPSBackBrush = 0;
 
 BOOL					bShowWhenNotRecording = 0;
-BOOL					bFirstAttach = 0;
 
 //
 //	Init plugin
@@ -34,15 +32,6 @@ PLUGIN_EXPORT DWORD PluginInit(DWORD dwPluginID)
 
 	// Initialize GDI+.
 	pRenderHelper = new PluginOverlayGdiPlusHelper(dwPluginID);
-
-	//pBackBrush = new Gdiplus::SolidBrush(Gdiplus::Color(100, 0, 0, 0));
-	//pAxisPen = new Gdiplus::Pen(Gdiplus::Color(100, 0, 170, 70));
-	//pGraphPen = new Gdiplus::Pen(Gdiplus::Color(255, 0, 200, 70));
-	//pTextBrush = new Gdiplus::SolidBrush(Gdiplus::Color(255, 255, 255, 255));
-	//pTextFont = new Gdiplus::Font(L"System", 8, Gdiplus::FontStyleBold);
-
-	//pFPSBackBrush = new Gdiplus::SolidBrush(Gdiplus::Color(200, 0, 0, 0));
-	bFirstAttach = true;
 	return PC_PLUGIN_FLAG_IS_ACTIVE | PC_PLUGIN_FLAG_IS_OVERLAY;	// plugin is active and has overlay features
 }
 
@@ -51,26 +40,11 @@ PLUGIN_EXPORT const char* PluginGetTitle()
 	return "RECORDING_INDICATOR_PLUGIN";
 }
 
-//#define VAR_NORMAL_COLOR		"normal_color"
-//#define VAR_RECORD_COLOR		"record_color"
-//#define VAR_FPS_FONT_FAMILY		"fps_font.family"
-//#define VAR_FPS_FONT_SIZE		"fps_font.size"
-//#define VAR_FPS_FONT_STYLE		"fps_font.style"
-
-// hack! :)
-//#define profile_screenshot_indicator_color	"screenshot.indicator_color"
-//#define profile_screenshot_indicator "screenshot.indicator"
-
 //
 //	Set default variables
 //
 PLUGIN_EXPORT void PluginSetDefaultVars()
 {
-//	PC_SetPluginVar(m_dwPluginID, OVR_VAR_POSITION_X, (int)0);
-//	PC_SetPluginVar(m_dwPluginID, OVR_VAR_POSITION_Y, (int)0);
-//	PC_SetPluginVar(m_dwPluginID, OVR_VAR_SIZE_X, (int)100);
-//	PC_SetPluginVar(m_dwPluginID, OVR_VAR_SIZE_Y, (int)50);
-
 	PC_SetPluginVar(m_dwPluginID, VAR_NORMAL_COLOR, RGB(255, 255, 0));
 	PC_SetPluginVar(m_dwPluginID, VAR_RECORD_COLOR, RGB(255, 0, 0));
 	PC_SetPluginVar(m_dwPluginID, VAR_SHOW_WHEN_NOT_RECORDING, 1);
@@ -115,16 +89,6 @@ PLUGIN_EXPORT void PluginUpdateOverlay()
 	if (!pRenderHelper)
 		return;
 
-	//SAFE_DELETE(pFPSNormalBrush);
-	//pFPSNormalBrush = new Gdiplus::SolidBrush(Gdiplus::Color(255, 255, 255, 255));
-	if (bFirstAttach) {
-		bFirstAttach = false;
-		PC_StartRecording();
-		PC_DebugPrint(L"Triggered");
-	}
-	else {
-		PC_DebugPrint(L"Not Triggered");
-	}
 	// lock overlay image
 	auto pLock = pRenderHelper->BeginFrame();
 	if (!pLock)
@@ -136,10 +100,8 @@ PLUGIN_EXPORT void PluginUpdateOverlay()
 	Gdiplus::Graphics *pGraphics = pRenderHelper->GetGraphics();
 
 	//-----------------------------------------
-	// draw FPS counter
+	// draw Recording Indicator
 
-	// set options
-	//pGraphics->SetTextRenderingHint(Gdiplus::TextRenderingHintAntiAlias);
 
 	// clear back
 	pGraphics->Clear(Gdiplus::Color(0, 0, 0, 0));
@@ -147,10 +109,9 @@ PLUGIN_EXPORT void PluginUpdateOverlay()
 
 
 
-	// draw fps
+	// draw Recording Indicator
 	{
 		Gdiplus::RectF bound;
-		//bound.
 		int circleSize = 0;
 		if (w < h) {
 			circleSize = w;
@@ -167,7 +128,6 @@ PLUGIN_EXPORT void PluginUpdateOverlay()
 	}
 
 
-	//	graphics.Flush(FlushIntentionSync);
 
 	// fill overlay image
 	pRenderHelper->EndFrame();
@@ -209,7 +169,6 @@ static void DrawColorButton(LPDRAWITEMSTRUCT lpDIS, COLORREF clr)
 static INT_PTR CALLBACK DlgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	DWORD id;
-//	NMHDR *p;
 
 
 	switch (uMsg)
