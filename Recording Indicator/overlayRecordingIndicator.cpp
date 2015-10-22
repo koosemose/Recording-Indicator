@@ -18,8 +18,8 @@ DWORD m_dwPluginID = -1;		// unique (realtime) plugin ID
 PluginOverlayGdiPlusHelper	*pRenderHelper = 0;
 
 
-Gdiplus::SolidBrush*	pFPSNormalBrush = 0;
-Gdiplus::SolidBrush*	pFPSRecordBrush = 0;
+Gdiplus::SolidBrush*	pNormalBrush = 0;
+Gdiplus::SolidBrush*	pRecordBrush = 0;
 
 BOOL					bShowWhenNotRecording = 0;
 
@@ -57,13 +57,13 @@ PLUGIN_EXPORT void PluginUpdateVars()
 {
 	DWORD clr;
 	
-	SAFE_DELETE(pFPSNormalBrush);
+	SAFE_DELETE(pNormalBrush);
 	clr = PC_GetPluginVarInt(m_dwPluginID, VAR_NORMAL_COLOR);
-	pFPSNormalBrush = new Gdiplus::SolidBrush(Gdiplus::Color(255, GetRValue(clr), GetGValue(clr), GetBValue(clr)));
+	pNormalBrush = new Gdiplus::SolidBrush(Gdiplus::Color(255, GetRValue(clr), GetGValue(clr), GetBValue(clr)));
 
-	SAFE_DELETE(pFPSRecordBrush);
+	SAFE_DELETE(pRecordBrush);
 	clr = PC_GetPluginVarInt(m_dwPluginID, VAR_RECORD_COLOR);
-	pFPSRecordBrush = new Gdiplus::SolidBrush(Gdiplus::Color(255, GetRValue(clr), GetGValue(clr), GetBValue(clr)));
+	pRecordBrush = new Gdiplus::SolidBrush(Gdiplus::Color(255, GetRValue(clr), GetGValue(clr), GetBValue(clr)));
 
 	bShowWhenNotRecording = PC_GetPluginVarInt(m_dwPluginID, VAR_SHOW_WHEN_NOT_RECORDING);
 
@@ -74,8 +74,8 @@ PLUGIN_EXPORT void PluginUpdateVars()
 //
 PLUGIN_EXPORT void PluginShutdown()
 {
-	SAFE_DELETE(pFPSNormalBrush);
-	SAFE_DELETE(pFPSRecordBrush);
+	SAFE_DELETE(pNormalBrush);
+	SAFE_DELETE(pRecordBrush);
 
 	SAFE_DELETE(pRenderHelper);
 }
@@ -120,10 +120,10 @@ PLUGIN_EXPORT void PluginUpdateOverlay()
 			circleSize = h;
 		}
 		if (PC_IsRecording()) {
-			pGraphics->FillEllipse(pFPSRecordBrush, 0, 0, circleSize, circleSize);
+			pGraphics->FillEllipse(pRecordBrush, 0, 0, circleSize, circleSize);
 		}
 		else if (bShowWhenNotRecording) {
-			pGraphics->FillEllipse(pFPSNormalBrush, 0, 0, circleSize, circleSize);
+			pGraphics->FillEllipse(pNormalBrush, 0, 0, circleSize, circleSize);
 		}
 	}
 
@@ -234,5 +234,5 @@ static INT_PTR CALLBACK DlgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 //
 PLUGIN_EXPORT void PluginConfigure(HWND parent)
 {
-	DialogBox(GetDllInstance(), MAKEINTRESOURCE(IDD_FPS_CONFIG_DLG), parent, DlgProc);
+	DialogBox(GetDllInstance(), MAKEINTRESOURCE(IDD_RI_CONFIG_DLG), parent, DlgProc);
 }
