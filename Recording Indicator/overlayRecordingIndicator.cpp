@@ -19,6 +19,7 @@ PluginOverlayGdiPlusHelper	*pRenderHelper = 0;
 
 
 Gdiplus::SolidBrush*	pNormalBrush = 0;
+Gdiplus::SolidBrush*	pPauseBrush = 0;
 Gdiplus::SolidBrush*	pRecordBrush = 0;
 
 BOOL					bShowWhenNotRecording = 0;
@@ -45,7 +46,8 @@ PLUGIN_EXPORT const char* PluginGetTitle()
 //
 PLUGIN_EXPORT void PluginSetDefaultVars()
 {
-	PC_SetPluginVar(m_dwPluginID, VAR_NORMAL_COLOR, RGB(255, 255, 0));
+	PC_SetPluginVar(m_dwPluginID, VAR_NORMAL_COLOR, RGB(0, 255, 0));
+	PC_SetPluginVar(m_dwPluginID, VAR_PAUSE_COLOR, RGB(255, 255, 0));
 	PC_SetPluginVar(m_dwPluginID, VAR_RECORD_COLOR, RGB(255, 0, 0));
 	PC_SetPluginVar(m_dwPluginID, VAR_SHOW_WHEN_NOT_RECORDING, 1);
 }
@@ -60,6 +62,10 @@ PLUGIN_EXPORT void PluginUpdateVars()
 	SAFE_DELETE(pNormalBrush);
 	clr = PC_GetPluginVarInt(m_dwPluginID, VAR_NORMAL_COLOR);
 	pNormalBrush = new Gdiplus::SolidBrush(Gdiplus::Color(255, GetRValue(clr), GetGValue(clr), GetBValue(clr)));
+
+	SAFE_DELETE(pPauseBrush);
+	clr = PC_GetPluginVarInt(m_dwPluginID, VAR_PAUSE_COLOR);
+	pPauseBrush = new Gdiplus::SolidBrush(Gdiplus::Color(255, GetRValue(clr), GetGValue(clr), GetBValue(clr)));
 
 	SAFE_DELETE(pRecordBrush);
 	clr = PC_GetPluginVarInt(m_dwPluginID, VAR_RECORD_COLOR);
@@ -119,7 +125,9 @@ PLUGIN_EXPORT void PluginUpdateOverlay()
 		else {
 			circleSize = h;
 		}
-		if (PC_IsRecording()) {
+		if (PC_IsPausedRecording()) {
+			pGraphics->FillEllipse(pPauseBrush, 0, 0, circleSize, circleSize);
+		} else if (PC_IsRecording()) {
 			pGraphics->FillEllipse(pRecordBrush, 0, 0, circleSize, circleSize);
 		}
 		else if (bShowWhenNotRecording) {
@@ -135,7 +143,7 @@ PLUGIN_EXPORT void PluginUpdateOverlay()
 
 //////////////////////////////////////////////////////////////////////////
 
-DWORD dwNormalColor, dwRecordColor;
+DWORD dwNormalColor, dwPauseColor, dwRecordColor;
 BOOL bItalic, bBold;
 wstring szFontFamily;
 DWORD dwFontSize;
@@ -147,6 +155,7 @@ static void InitSettingsDialog(HWND hwnd)
 	PC_LocalizeDialog(m_dwPluginID, hwnd);
 
 	dwNormalColor = PC_GetPluginVarInt(m_dwPluginID, VAR_NORMAL_COLOR);
+	dwPauseColor = PC_GetPluginVarInt(m_dwPluginID, VAR_PAUSE_COLOR);
 	dwRecordColor = PC_GetPluginVarInt(m_dwPluginID, VAR_RECORD_COLOR);
 
 	Button_SetCheck(GetDlgItem(hwnd, IDC_SHOW_WHEN_NOT_RECORDING), PC_GetPluginVarInt(m_dwPluginID, VAR_SHOW_WHEN_NOT_RECORDING) != 0 ? BST_CHECKED : BST_UNCHECKED);
@@ -180,6 +189,7 @@ static INT_PTR CALLBACK DlgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 			if (id == IDOK)
 			{
 				PC_SetPluginVar(m_dwPluginID, VAR_NORMAL_COLOR, dwNormalColor);
+				PC_SetPluginVar(m_dwPluginID, VAR_PAUSE_COLOR, dwPauseColor);
 				PC_SetPluginVar(m_dwPluginID, VAR_RECORD_COLOR, dwRecordColor);
 
 				PC_SetPluginVar(m_dwPluginID, VAR_SHOW_WHEN_NOT_RECORDING, Button_GetCheck(GetDlgItem(hwnd, IDC_SHOW_WHEN_NOT_RECORDING)) == BST_CHECKED);
@@ -189,9 +199,9 @@ static INT_PTR CALLBACK DlgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 			EndDialog(hwnd, id);
 		}
 
-		if (id == IDC_NORMAL_COLOR_BTN || id == IDC_RECORD_COLOR_BTN)
+		if (id == IDC_NORMAL_COLOR_BTN || id == IDC_RECORD_COLOR_BTN || id == IDC_PAUSE_COLOR_BTN)
 		{
-			DWORD &color_var = (id == IDC_NORMAL_COLOR_BTN) ? dwNormalColor : dwRecordColor;
+			DWORD &color_var = (id == IDC_NORMAL_COLOR_BTN) ? dwNormalColor : (id == IDC_PAUSE_COLOR_BTN) ? dwPauseColor : dwRecordColor;
 			COLORREF custColors[16];
 			CHOOSECOLOR cc = { 0 };
 			cc.lStructSize = sizeof(cc);
@@ -215,6 +225,8 @@ static INT_PTR CALLBACK DlgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 		auto lpDIS = (LPDRAWITEMSTRUCT)lParam;
 		if (lpDIS->CtlID == IDC_NORMAL_COLOR_BTN)
 			DrawColorButton(lpDIS, dwNormalColor);
+		if (lpDIS->CtlID == IDC_PAUSE_COLOR_BTN)
+			DrawColorButton(lpDIS, dwPauseColor);
 		if (lpDIS->CtlID == IDC_RECORD_COLOR_BTN)
 			DrawColorButton(lpDIS, dwRecordColor);
 		break;
