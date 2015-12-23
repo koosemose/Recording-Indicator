@@ -175,7 +175,16 @@ static void InitSettingsDialog(HWND hwnd)
 	SendMessageW(slide, TBM_SETPAGESIZE, 0, 10);
 	SendMessageW(slide, TBM_SETTICFREQ, 10, 0);
 
-	SendMessageW(slide, TBM_SETPOS, TRUE, iOpacity/255.0*100);
+	SendMessageW(slide, TBM_SETPOS, TRUE, round(iOpacity/255.0*100));
+
+	int pos = SendMessageW(slide, TBM_GETPOS, 0, 0);
+
+	//int opacity = (int)(pos / 100) * 255;
+	wchar_t buf[4];
+	
+	wsprintfW(buf, L"%d", pos);
+
+	SetWindowTextW(GetDlgItem(hwnd, IDC_LABEL), buf);
 }
 
 static void DrawColorButton(LPDRAWITEMSTRUCT lpDIS, COLORREF clr)
@@ -215,7 +224,7 @@ static INT_PTR CALLBACK DlgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 				int style = (bBold ? 1 : 0) | (bItalic ? 2 : 0);
 
 				pos = SendMessageW(slide, TBM_GETPOS, 0, 0);
-				int opacity = (pos / 100.0) * 255;
+				int opacity = round((pos / 100.0) * 255);
 				PC_SetPluginVar(m_dwPluginID, VAR_OPACITY, opacity);
 
 			}
@@ -262,8 +271,8 @@ static INT_PTR CALLBACK DlgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 
 		//int opacity = (int)(pos / 100) * 255;
 		wchar_t buf[4];
-		opacity = (pos / 100.0) * 255;
-		wsprintfW(buf, L"%d", opacity);
+		//opacity = (pos / 100.0) * 255;
+		wsprintfW(buf, L"%d", pos);
 
 		SetWindowTextW(lbl, buf);
 		break;
