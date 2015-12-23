@@ -3,6 +3,7 @@
 #include "resource.h"
 
 
+#include <commctrl.h>
 
 // add your own path for PlayClaw5.lib
 #ifdef _DEBUG
@@ -23,6 +24,7 @@ Gdiplus::SolidBrush*	pPauseBrush = 0;
 Gdiplus::SolidBrush*	pRecordBrush = 0;
 
 BOOL					bShowWhenNotRecording = 0;
+int						iOpacity = 255;
 
 //
 //	Init plugin
@@ -50,6 +52,7 @@ PLUGIN_EXPORT void PluginSetDefaultVars()
 	PC_SetPluginVar(m_dwPluginID, VAR_PAUSE_COLOR, RGB(255, 255, 0));
 	PC_SetPluginVar(m_dwPluginID, VAR_RECORD_COLOR, RGB(255, 0, 0));
 	PC_SetPluginVar(m_dwPluginID, VAR_SHOW_WHEN_NOT_RECORDING, 1);
+	PC_SetPluginVar(m_dwPluginID, VAR_OPACITY, 255);
 }
 
 //
@@ -59,19 +62,20 @@ PLUGIN_EXPORT void PluginUpdateVars()
 {
 	DWORD clr;
 	
+	bShowWhenNotRecording = PC_GetPluginVarInt(m_dwPluginID, VAR_SHOW_WHEN_NOT_RECORDING);
+	iOpacity = PC_GetPluginVarInt(m_dwPluginID, VAR_OPACITY);
+
 	SAFE_DELETE(pNormalBrush);
 	clr = PC_GetPluginVarInt(m_dwPluginID, VAR_NORMAL_COLOR);
-	pNormalBrush = new Gdiplus::SolidBrush(Gdiplus::Color(255, GetRValue(clr), GetGValue(clr), GetBValue(clr)));
+	pNormalBrush = new Gdiplus::SolidBrush(Gdiplus::Color(iOpacity, GetRValue(clr), GetGValue(clr), GetBValue(clr)));
 
 	SAFE_DELETE(pPauseBrush);
 	clr = PC_GetPluginVarInt(m_dwPluginID, VAR_PAUSE_COLOR);
-	pPauseBrush = new Gdiplus::SolidBrush(Gdiplus::Color(255, GetRValue(clr), GetGValue(clr), GetBValue(clr)));
+	pPauseBrush = new Gdiplus::SolidBrush(Gdiplus::Color(iOpacity, GetRValue(clr), GetGValue(clr), GetBValue(clr)));
 
 	SAFE_DELETE(pRecordBrush);
 	clr = PC_GetPluginVarInt(m_dwPluginID, VAR_RECORD_COLOR);
-	pRecordBrush = new Gdiplus::SolidBrush(Gdiplus::Color(255, GetRValue(clr), GetGValue(clr), GetBValue(clr)));
-
-	bShowWhenNotRecording = PC_GetPluginVarInt(m_dwPluginID, VAR_SHOW_WHEN_NOT_RECORDING);
+	pRecordBrush = new Gdiplus::SolidBrush(Gdiplus::Color(iOpacity, GetRValue(clr), GetGValue(clr), GetBValue(clr)));
 
 }
 
@@ -125,13 +129,19 @@ PLUGIN_EXPORT void PluginUpdateOverlay()
 		else {
 			circleSize = h;
 		}
+		int squareSize = circleSize * 3 / 4;
+		int squareStart = circleSize / 8;
+		
 		if (PC_IsPausedRecording()) {
-			pGraphics->FillEllipse(pPauseBrush, 0, 0, circleSize, circleSize);
+			//pGraphics->FillEllipse(pPauseBrush, 0, 0, circleSize, circleSize);
+			pGraphics->FillRectangle(pPauseBrush, squareStart, squareStart, squareSize/3, squareSize);
+			pGraphics->FillRectangle(pPauseBrush, squareStart + squareSize / 3*2, squareStart, squareSize / 3, squareSize);
 		} else if (PC_IsRecording()) {
 			pGraphics->FillEllipse(pRecordBrush, 0, 0, circleSize, circleSize);
 		}
 		else if (bShowWhenNotRecording) {
-			pGraphics->FillEllipse(pNormalBrush, 0, 0, circleSize, circleSize);
+			pGraphics->FillRectangle(pNormalBrush, squareStart, squareStart, squareSize, squareSize);
+			//pGraphics->FillEllipse(pNormalBrush, 0, 0, circleSize, circleSize);
 		}
 	}
 
@@ -159,6 +169,13 @@ static void InitSettingsDialog(HWND hwnd)
 	dwRecordColor = PC_GetPluginVarInt(m_dwPluginID, VAR_RECORD_COLOR);
 
 	Button_SetCheck(GetDlgItem(hwnd, IDC_SHOW_WHEN_NOT_RECORDING), PC_GetPluginVarInt(m_dwPluginID, VAR_SHOW_WHEN_NOT_RECORDING) != 0 ? BST_CHECKED : BST_UNCHECKED);
+
+	HWND slide = GetDlgItem(hwnd, IDC_OPACITY_SLIDER);
+	SendMessageW(slide, TBM_SETRANGE, TRUE, MAKELONG(0, 100));
+	SendMessageW(slide, TBM_SETPAGESIZE, 0, 10);
+	SendMessageW(slide, TBM_SETTICFREQ, 10, 0);
+
+	SendMessageW(slide, TBM_SETPOS, TRUE, iOpacity/255.0*100);
 }
 
 static void DrawColorButton(LPDRAWITEMSTRUCT lpDIS, COLORREF clr)
@@ -178,8 +195,10 @@ static void DrawColorButton(LPDRAWITEMSTRUCT lpDIS, COLORREF clr)
 static INT_PTR CALLBACK DlgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	DWORD id;
-
-
+	HWND slide = GetDlgItem(hwnd, IDC_OPACITY_SLIDER);
+	HWND lbl = GetDlgItem(hwnd, IDC_LABEL);
+	LRESULT pos;
+	int opacity = 0;
 	switch (uMsg)
 	{
 	case WM_COMMAND:
@@ -194,6 +213,11 @@ static INT_PTR CALLBACK DlgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 
 				PC_SetPluginVar(m_dwPluginID, VAR_SHOW_WHEN_NOT_RECORDING, Button_GetCheck(GetDlgItem(hwnd, IDC_SHOW_WHEN_NOT_RECORDING)) == BST_CHECKED);
 				int style = (bBold ? 1 : 0) | (bItalic ? 2 : 0);
+
+				pos = SendMessageW(slide, TBM_GETPOS, 0, 0);
+				int opacity = (pos / 100.0) * 255;
+				PC_SetPluginVar(m_dwPluginID, VAR_OPACITY, opacity);
+
 			}
 
 			EndDialog(hwnd, id);
@@ -231,6 +255,18 @@ static INT_PTR CALLBACK DlgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 			DrawColorButton(lpDIS, dwRecordColor);
 		break;
 	}
+
+
+	case WM_HSCROLL:
+		pos = SendMessageW(slide, TBM_GETPOS, 0, 0);
+
+		//int opacity = (int)(pos / 100) * 255;
+		wchar_t buf[4];
+		opacity = (pos / 100.0) * 255;
+		wsprintfW(buf, L"%d", opacity);
+
+		SetWindowTextW(lbl, buf);
+		break;
 
 
 	case WM_INITDIALOG:
