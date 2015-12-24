@@ -8,4 +8,6 @@ Cancel				Mégse
 RECORDING_INDICATOR_PLUGIN		Rögzítés indikátor
 NORMAL_COLOR		Kijelzés színe
 RECORD_COLOR		Rögzítés színe
+PAUSE_COLOR			Szünet színe
+OPACITY				Átlátszatlanság
 SHOW_WHEN_NOT_RECORDING   Jelezzen ha nem rögzít
